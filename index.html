@@ -20,7 +20,7 @@
                 <span class="text-indigo-600">💡</span> 特別支援教育向け 教材アプリプロンプトジェネレーター
             </h1>
             <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-200">
-                Vibe Coding Edition
+                UI/UX Optimized
             </span>
         </div>
     </header>
@@ -49,12 +49,12 @@
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">① 対象教科 <span class="text-red-500">*</span></label>
                         <div class="flex gap-4">
-                            <label class="flex-1 flex items-center justify-center border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition peer-checked:border-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50">
+                            <label class="flex-1 flex items-center justify-center border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50">
                                 <input type="radio" name="subject" value="国語" class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mr-2" checked>
                                 <span class="font-medium text-sm text-gray-900">国語</span>
                             </label>
                             <label class="flex-1 flex items-center justify-center border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50">
-                                <input type="radio" name="subject" value="算数" class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mr-2">
+                                <input type="radio" name="subject" value="算数・数学" class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mr-2">
                                 <span class="font-medium text-sm text-gray-900">算数・数学</span>
                             </label>
                         </div>
@@ -150,7 +150,7 @@
                 }
                 learningMapData = await response.json();
                 
-                // 初期ロード時はデフォルトでチェックされている「国語」のプルダウンを生成
+                // 初期ロード時プルダウンを生成
                 updateStageDropdown();
             } catch (error) {
                 console.error('マスターデータのフェッチに失敗しました:', error);
@@ -190,6 +190,18 @@
             return checkedRadio ? checkedRadio.value : '国語';
         }
 
+        // JSONデータのキーを探索するための安全なヘルパー関数
+        // (「算数・数学」「算数」「算数・数学科」などの表記揺れに柔軟に対応します)
+        function getSubjectData(subjectKey) {
+            if (!learningMapData) return null;
+            if (learningMapData[subjectKey]) return learningMapData[subjectKey];
+            
+            // 完全一致しない場合、前方一致などのキーを探す保護ロジック
+            const keys = Object.keys(learningMapData);
+            const matchedKey = keys.find(k => k.includes(subjectKey) || subjectKey.includes(k));
+            return matchedKey ? learningMapData[matchedKey] : null;
+        }
+
         // 2. 「段階」プルダウンの更新
         function updateStageDropdown() {
             const subject = getSelectedSubject();
@@ -204,10 +216,11 @@
             detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
             detailSelect.disabled = true;
 
-            if (!learningMapData || !learningMapData[subject]) return;
+            const targetData = getSubjectData(subject);
+            if (!targetData) return;
 
             // JSONオブジェクトのキー（小学部1段階 など）からオプションを動的生成
-            Object.keys(learningMapData[subject]).forEach(stage => {
+            Object.keys(targetData).forEach(stage => {
                 const option = document.createElement('option');
                 option.value = stage;
                 option.textContent = stage;
@@ -231,7 +244,10 @@
                 return;
             }
 
-            const steps = learningMapData[subject][stage];
+            const targetData = getSubjectData(subject);
+            if (!targetData || !targetData[stage]) return;
+
+            const steps = targetData[stage];
             Object.keys(steps).forEach(step => {
                 const option = document.createElement('option');
                 option.value = step;
@@ -255,7 +271,10 @@
                 return;
             }
 
-            const details = learningMapData[subject][stage][step];
+            const targetData = getSubjectData(subject);
+            if (!targetData || !targetData[stage] || !targetData[stage][step]) return;
+
+            const details = targetData[stage][step];
             if (Array.isArray(details)) {
                 details.forEach(detail => {
                     const option = document.createElement('option');
@@ -279,14 +298,13 @@
 
             const validationError = document.getElementById('validation-error');
 
-            // 必須チェック（教科、段階、ステップ、詳細指導内容）
+            // 必須チェック
             if (!stage || !step || !detail) {
                 validationError.classList.remove('hidden');
                 return;
             }
             validationError.classList.add('hidden');
 
-            // カッコ内のプレースホルダーを置換するゴールデンテンプレート
             const promptTemplate = `あなたは特別支援教育（知的障害）の教材開発における、最高峰のフロントエンドエンジニアでありWebビルダーです。
 以下の【教育的コンテキスト】および【児童の特性】に基づき、iPadのSafariブラウザで完璧に動作する、単一ファイル（Single HTML）構成のインタラクティブな学習教材Webアプリをビルドしてください。
 
@@ -312,7 +330,7 @@ ${interest}
 
 3. アナログ教具に近い直感的操作感（マルチタッチ対応）：
    - 単に画面上の静止ボタンをタップするだけの無機質なデジタルドリルではなく、自分の手で教材を動かせる**ドラッグ＆ドロップ操作**（例: 児童の好きな電車の車両を車庫に引きずる、果物をカゴの中に入れるなど）をメインギミックとして採用すること。
-   - iPad上のSafariでドラッグ操作を遅延なく直感的に実現させるため、マウクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使した高レスポンスなドラッグ＆ドロップ制御をJavaScriptに内包すること。
+   - iPad上のSafariでドラッグ操作を遅延なく直感的に実現させるため、マウスクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使した高レスポンスなドラッグ＆ドロップ制御をJavaScriptに内包すること。
 
 4. 心理的安全性（否定的なフィードバックの完全禁止）：
    - 児童がつまずいた際、パニック、自傷行為、あるいは学習への強い挫折感を誘発する原因となるため、**「×（バツ印）」の表示や「ブブー」という低音の不快な警告音は一切採用しない（完全不採用・禁止）**こと。
