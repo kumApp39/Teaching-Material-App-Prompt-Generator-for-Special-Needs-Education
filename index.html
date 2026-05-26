@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特別支援教育向け 教材アプリプロンプトジェネレーター</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800 antialiased">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 py-4 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                <span class="text-indigo-600">💡</span> 特別支援教育向け 教材アプリプロンプトジェネレーター
+            </h1>
+            <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-200">
+                Vibe Coding Edition
+            </span>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <div id="error-alert" class="hidden mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-xl shadow-sm transition-all duration-300">
+            <div class="flex items-start">
+                <div class="flex-shrink-0 text-red-500 font-bold text-xl">⚠️</div>
+                <div class="ml-3">
+                    <p class="text-sm font-bold text-red-800">【警告】学習指導要領マスターデータ(JSON)の読み込みに失敗しました。</p>
+                    <p class="text-xs text-red-700 mt-1">`data/learning_map.json` ファイルが正しいパスに配置されているか、またはVS Codeの Live Server などのローカルサーバー環境から起動しているかを確認してください。</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-5 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-6">
+                <h2 class="text-lg font-bold text-gray-900 border-b pb-2 flex items-center gap-2">
+                    <span class="w-2 h-5 bg-indigo-600 rounded-full"></span> 1. 児童の実態と目標の入力
+                </h2>
+
+                <form id="generator-form" class="space-y-5" onsubmit="return false;">
+                    
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">① 対象教科 <span class="text-red-500">*</span></label>
+                        <div class="flex gap-4">
+                            <label class="flex-1 flex items-center justify-center border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition peer-checked:border-indigo-600 has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50">
+                                <input type="radio" name="subject" value="国語" class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mr-2" checked>
+                                <span class="font-medium text-sm text-gray-900">国語</span>
+                            </label>
+                            <label class="flex-1 flex items-center justify-center border-2 border-gray-200 rounded-xl p-3 cursor-pointer hover:bg-gray-50 transition has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/50">
+                                <input type="radio" name="subject" value="算数" class="w-4 h-4 text-indigo-600 border-gray-300 focus:ring-indigo-500 mr-2">
+                                <span class="font-medium text-sm text-gray-900">算数・数学</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="select-stage" class="block text-sm font-bold text-gray-700 mb-1">② 指導段階 <span class="text-red-500">*</span></label>
+                        <select id="select-stage" class="block w-full border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4 bg-gray-50 text-sm font-medium border">
+                            <option value="">-- 教科を選んでください --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="select-step" class="block text-sm font-bold text-gray-700 mb-1">③ 領域／ステップ <span class="text-red-500">*</span></label>
+                        <select id="select-step" class="block w-full border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4 bg-gray-50 text-sm font-medium border" disabled>
+                            <option value="">-- 段階を先に選んでください --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="select-detail" class="block text-sm font-bold text-gray-700 mb-1">④ 具体的な指導内容 <span class="text-red-500">*</span></label>
+                        <select id="select-detail" class="block w-full border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 py-3 px-4 bg-gray-50 text-sm font-medium border truncate" disabled>
+                            <option value="">-- 領域／ステップを先に選んでください --</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="input-goal" class="block text-sm font-bold text-gray-700 mb-1">⑤ 本授業の指導目標</label>
+                        <textarea id="input-goal" rows="3" class="block w-full border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-gray-50 text-sm border" placeholder="例：1から5までの数を具体物と対応させて数えることができる。"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="input-interest" class="block text-sm font-bold text-gray-700 mb-1">⑥ 児童の興味関心・アプリへの要望</label>
+                        <textarea id="input-interest" rows="3" class="block w-full border-gray-300 rounded-xl shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 bg-gray-50 text-sm border" placeholder="例：新幹線や電車が大好きなので、電車のイラストを車庫（枠）にドラッグして正解を学べるようにしてほしい。"></textarea>
+                    </div>
+
+                    <div id="validation-error" class="hidden text-sm font-bold text-red-600 bg-red-50 p-3 rounded-xl border border-red-200">
+                        ⚠️ 教科、段階、指導内容をすべて選択してください
+                    </div>
+
+                    <button type="button" id="btn-generate" class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-xl shadow-sm text-base font-bold text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 active:scale-[0.98]">
+                        ✨ プロンプトを生成
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-7 flex flex-col space-y-4">
+                
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-center justify-between gap-4">
+                    <h2 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <span class="w-2 h-5 bg-emerald-500 rounded-full"></span> 2. 生成されたプロンプト
+                    </h2>
+                    
+                    <div class="flex items-center gap-2 relative">
+                        <div id="toast-badge" class="opacity-0 pointer-events-none transform translate-y-2 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition-all duration-300 absolute -top-10 right-0">
+                            <span>✓</span> コピーしました！
+                        </div>
+
+                        <button type="button" id="btn-copy" class="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm focus:outline-none transition active:scale-[0.98]">
+                            📋 コピー
+                        </button>
+
+                        <a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer" class="inline-flex items-center px-4 py-2.5 border border-transparent text-sm font-bold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none transition active:scale-[0.98]">
+                            🚀 Geminiを開く
+                        </a>
+                    </div>
+                </div>
+
+                <div class="flex-1 min-h-[450px] bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col overflow-hidden">
+                    <textarea id="prompt-output" readonly class="w-full flex-1 p-5 font-mono text-sm text-gray-800 bg-gray-900 text-gray-100 border-none resize-none focus:ring-0 leading-relaxed" placeholder="左側のフォームを入力し、「プロンプトを生成」ボタンを押すと、ここに教育要件が完璧にパースされたシステムプロンプトが出力されます。"></textarea>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // グローバルデータストア
+        let learningMapData = null;
+
+        // ドキュメント読み込み完了時の初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMasterData();
+            setupEventListeners();
+        });
+
+        // データの非同期取得
+        async function fetchMasterData() {
+            try {
+                const response = await fetch('data/learning_map.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                learningMapData = await response.json();
+                
+                // 初期ロード時はデフォルトでチェックされている「国語」のプルダウンを生成
+                updateStageDropdown();
+            } catch (error) {
+                console.error('マスターデータのフェッチに失敗しました:', error);
+                document.getElementById('error-alert').classList.remove('hidden');
+            }
+        }
+
+        // イベントリスナーの一括設定
+        function setupEventListeners() {
+            // 教科ラジオボタンの変更検知
+            document.querySelectorAll('input[name="subject"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    updateStageDropdown();
+                });
+            });
+
+            // 段階選択時の変更検知
+            document.getElementById('select-stage').addEventListener('change', () => {
+                updateStepDropdown();
+            });
+
+            // ステップ選択時の変更検知
+            document.getElementById('select-step').addEventListener('change', () => {
+                updateDetailDropdown();
+            });
+
+            // プロンプト生成ボタンのクリック
+            document.getElementById('btn-generate').addEventListener('click', generatePrompt);
+
+            // コピーボタンのクリック
+            document.getElementById('btn-copy').addEventListener('click', copyToClipboard);
+        }
+
+        // 現在選択されている教科の文字列を取得
+        function getSelectedSubject() {
+            const checkedRadio = document.querySelector('input[name="subject"]:checked');
+            return checkedRadio ? checkedRadio.value : '国語';
+        }
+
+        // 2. 「段階」プルダウンの更新
+        function updateStageDropdown() {
+            const subject = getSelectedSubject();
+            const stageSelect = document.getElementById('select-stage');
+            const stepSelect = document.getElementById('select-step');
+            const detailSelect = document.getElementById('select-detail');
+
+            // 後続プルダウンのリセット
+            stageSelect.innerHTML = '<option value="">-- 段階を選択してください --</option>';
+            stepSelect.innerHTML = '<option value="">-- 段階を先に選んでください --</option>';
+            stepSelect.disabled = true;
+            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
+            detailSelect.disabled = true;
+
+            if (!learningMapData || !learningMapData[subject]) return;
+
+            // JSONオブジェクトのキー（小学部1段階 など）からオプションを動的生成
+            Object.keys(learningMapData[subject]).forEach(stage => {
+                const option = document.createElement('option');
+                option.value = stage;
+                option.textContent = stage;
+                stageSelect.appendChild(option);
+            });
+        }
+
+        // 3. 「ステップ／領域」プルダウンの更新
+        function updateStepDropdown() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const stepSelect = document.getElementById('select-step');
+            const detailSelect = document.getElementById('select-detail');
+
+            stepSelect.innerHTML = '<option value="">-- 領域／ステップを選択してください --</option>';
+            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
+            detailSelect.disabled = true;
+
+            if (!stage) {
+                stepSelect.disabled = true;
+                return;
+            }
+
+            const steps = learningMapData[subject][stage];
+            Object.keys(steps).forEach(step => {
+                const option = document.createElement('option');
+                option.value = step;
+                option.textContent = step;
+                stepSelect.appendChild(option);
+            });
+            stepSelect.disabled = false;
+        }
+
+        // 4. 「具体的な指導内容」プルダウンの更新
+        function updateDetailDropdown() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const step = document.getElementById('select-step').value;
+            const detailSelect = document.getElementById('select-detail');
+
+            detailSelect.innerHTML = '<option value="">-- 具体的な指導内容を選択してください --</option>';
+
+            if (!step) {
+                detailSelect.disabled = true;
+                return;
+            }
+
+            const details = learningMapData[subject][stage][step];
+            if (Array.isArray(details)) {
+                details.forEach(detail => {
+                    const option = document.createElement('option');
+                    option.value = detail;
+                    option.textContent = detail;
+                    detailSelect.appendChild(option);
+                });
+            }
+            detailSelect.disabled = false;
+        }
+
+        // プロンプト生成ロジック
+        function generatePrompt() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const step = document.getElementById('select-step').value;
+            const detail = document.getElementById('select-detail').value;
+            
+            const goal = document.getElementById('input-goal').value.trim() || '（個別に指定なし。指導内容に基づき最適な目標を設定してください）';
+            const interest = document.getElementById('input-interest').value.trim() || '（児童の特別な興味関心の指定なし。シンプルで分かりやすいユニバーサルデザインを採用してください）';
+
+            const validationError = document.getElementById('validation-error');
+
+            // 必須チェック（教科、段階、ステップ、詳細指導内容）
+            if (!stage || !step || !detail) {
+                validationError.classList.remove('hidden');
+                return;
+            }
+            validationError.classList.add('hidden');
+
+            // カッコ内のプレースホルダーを置換するゴールデンテンプレート
+            const promptTemplate = `あなたは特別支援教育（知的障害）の教材開発における、最高峰のフロントエンドエンジニアでありWebビルダーです。
+以下の【教育的コンテキスト】および【児童の特性】に基づき、iPadのSafariブラウザで完璧に動作する、単一ファイル（Single HTML）構成のインタラクティブな学習教材Webアプリをビルドしてください。
+
+【教育的コンテキスト（学習指導要領に基づく設定）】
+- 対象教科: ${subject}
+- 指導段階: ${stage}
+- 領域/ステップ: ${step}
+- 具体的指導内容: ${detail}
+- 本授業の指導目標: ${goal}
+
+【児童の興味関心・アプリへの要望】
+${interest}
+
+【アプリ実装への絶対要件（特別支援・iPad Safari最適化仕様）】
+1. テキスト表記・フォントのユニバーサルデザイン：
+   - 画面上に登場する全ての指示文、ボタン文字、正誤フィードバックは「ひらがな」および「カタカナ」のみ（漢字は完全禁止）。
+   - フォントには視認性が極めて高いユニバーサルデザインフォント（太字のSans-serifなど）を設定し、背景と文字のコントラストを十分に確保すること。
+
+2. 厳格な画面固定とスクロールエラー対策（バグの完全排除）：
+   - 児童の予期せぬ誤操作を防ぐため、メタタグに \`user-scalable=no\` を設定し、ダブルタップ拡大を徹底的に禁止すること。
+   - CSSで \`user-select: none;\` および \`-webkit-touch-callout: none;\` を指定し、画面の長押しによるコピーメニューやポップアップの出現を完全無効化すること。
+   - ボディ全体および最外殻コンテナに **\`overscroll-behavior: none;\`** を適用すること。画面端を引っ張った際に背景がゴムのように白く伸びてずれてしまう現象（バウンススクロール）を確実に防止すること。
+
+3. アナログ教具に近い直感的操作感（マルチタッチ対応）：
+   - 単に画面上の静止ボタンをタップするだけの無機質なデジタルドリルではなく、自分の手で教材を動かせる**ドラッグ＆ドロップ操作**（例: 児童の好きな電車の車両を車庫に引きずる、果物をカゴの中に入れるなど）をメインギミックとして採用すること。
+   - iPad上のSafariでドラッグ操作を遅延なく直感的に実現させるため、マウクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使した高レスポンスなドラッグ＆ドロップ制御をJavaScriptに内包すること。
+
+4. 心理的安全性（否定的なフィードバックの完全禁止）：
+   - 児童がつまずいた際、パニック、自傷行為、あるいは学習への強い挫折感を誘発する原因となるため、**「×（バツ印）」の表示や「ブブー」という低音の不快な警告音は一切採用しない（完全不採用・禁止）**こと。
+   - 正解時は、画面全体に派手なアニメーション（カラフルな紙吹雪が舞う、大きな花丸が表示されるなど）と、Web Audio APIを駆使した心地よいクリア音で児童の達成感を最大化すること。
+
+5. 足場かけ（スキャッフホールディング機能の自動化）：
+   - 不正解のオブジェクト（違うボックスにドラッグした場合など）は、否定的な表現は一切せず、シュッと静かに元の初期位置へリセットすること。
+   - 同じ問題を2回連続でミスした、あるいは一定時間操作が止まった場合は、児童が自力で正解に気づけるように、**「正解となる選択肢（オブジェクト）や、ドロップすべき正しいエリアを優しく点滅（フェードイン・アウト）・ハイライトする」**といった視覚的な支援機能（ヒント機能）が自動で作動するロジックを必ず組み込むこと。
+
+6. 教育的根拠の明記（ねらいの常時表示）：
+   - 授業における個別の指導計画、および学習評価（PDCA）との連動を確実なものにするため、画面の最下部に目立たない小さな文字で「しどうしゃむけ：ほんアプリのねらい」と記載し、上記で設定した指導目標・内容を常時表示させるエリアを設けること。
+
+上記のすべての条件と、児童の興味関心を惹きつけるエッセンスを高い次元で融合させた最高の教材アプリのHTMLフルコードを、1つのコードブロックで出力してください。`;
+
+            // テキストエリアに出力
+            document.getElementById('prompt-output').value = promptTemplate;
+        }
+
+        // クリップボードコピーとトースト通知
+        function copyToClipboard() {
+            const outputText = document.getElementById('prompt-output').value;
+            if (!outputText) return;
+
+            navigator.clipboard.writeText(outputText).then(() => {
+                const badge = document.getElementById('toast-badge');
+                
+                // バッジのフェードイン表示
+                badge.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+                badge.classList.add('opacity-100', 'translate-y-0');
+
+                // 2秒後にフェードアウト
+                setTimeout(() => {
+                    badge.classList.remove('opacity-100', 'translate-y-0');
+                    badge.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+                }, 2000);
+            }).catch(err => {
+                console.error('クリップボードへのコピーに失敗しました:', err);
+            });
+        }
+    </script>
+</body>
+</html>
