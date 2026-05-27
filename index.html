@@ -171,4 +171,303 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-gray-900 text-lg">
-                            チャットの
+                            チャットの指示でアプリを修正する（何度でも！）
+                        </h3>
+                        <p class="text-gray-600 mt-2 leading-relaxed">
+                            できあがったアプリの動きを見て、直してほしいところや追加したいアイデアがあれば、プログラミングの知識は一切不要です。<br>
+                            そのままチャットで<strong>「もっと電車の絵を大きくして」「正解した時の音を優しくて心地よいピンポーンに変えて」</strong>など、先生のいつもの言葉でGeminiに伝えてください。AIが自動でアプリを即座に書き直してくれます。納得がいくまで何度でも改修が可能です。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-item relative flex gap-4 sm:gap-6">
+                    <div class="step-line flex-shrink-0 relative z-10">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm">3</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg">
+                            Googleサイトに「フルページ埋め込み」で公開する
+                        </h3>
+                        <p class="text-gray-600 mt-2 leading-relaxed">
+                            アプリが完璧に完成したら、Geminiの画面から完成したプログラムコードをコピーします。<br>
+                            ご自身のGoogleサイトを開き、右側メニューの<strong>「ページ」タブ</strong>を開き、下部の「＋」マークの上に浮かび上がる<strong>「フルページの埋め込み（＜ ＞マークのアイコン）」</strong>を選んで新しいページを作り、コードを貼り付けます。<br>
+                            <br>
+                            <span class="text-indigo-600 font-bold">💡 なぜ最初から全画面にならないの？（裏技設定）</span><br>
+                            iPadのセキュリティ上、ページを開いた瞬間の自動全画面化はブロックされてしまいます。そのため今回のアプリは、<strong>「画面に初めてさわった瞬間（はじめる画面をタップした時）」に、Googleサイトの枠を越えて強制的に全画面になる</strong>ように作られています。一度全画面になれば解除されることはありません。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="step-item relative flex gap-4 sm:gap-6">
+                    <div class="step-line flex-shrink-0 relative z-10">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm">4</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg text-indigo-700 flex items-center gap-2">
+                            📱 iPadのホーム画面に追加する（ホーム画面アプリ化）
+                        </h3>
+                        <p class="text-gray-600 mt-2 leading-relaxed">
+                            児童生徒が授業で使うiPadのSafari（ブラウザ）で、先ほど公開したGoogleサイトのURLを開きます。<br>
+                            iPadの画面右上にある<strong>「共有ボタン（四角から上向きの矢印が飛び出しているマーク）」</strong>をタップし、一覧から<strong>「ホーム画面に追加」</strong>を選択してください。<br>
+                            これにより、iPadの待ち受け画面に本物のネイティブアプリのような可愛いアイコンが設置されます。次回からはそのアイコンをポンと叩くだけで、ブラウザの邪魔なアドレスバー等も一切消えた最高の使い勝手で教材アプリを即座に起動できます！
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        </div>
+
+    <script>
+        // グローバルデータストア
+        let learningMapData = null;
+
+        // ドキュメント読み込み完了時の初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchMasterData();
+            setupEventListeners();
+        });
+
+        // データの非同期取得
+        async function fetchMasterData() {
+            try {
+                const response = await fetch('data/learning_map.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                learningMapData = await response.json();
+                
+                // 初期ロード時プルダウンを生成
+                updateStageDropdown();
+            } catch (error) {
+                console.error('マスターデータのフェッチに失敗しました:', error);
+                document.getElementById('error-alert').classList.remove('hidden');
+            }
+        }
+
+        // イベントリスナーの一括設定
+        function setupEventListeners() {
+            // 教科ラジオボタンの変更検知
+            document.querySelectorAll('input[name="subject"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    updateStageDropdown();
+                });
+            });
+
+            // 段階選択時の変更検知
+            document.getElementById('select-stage').addEventListener('change', () => {
+                updateStepDropdown();
+            });
+
+            // ステップ選択時の変更検知
+            document.getElementById('select-step').addEventListener('change', () => {
+                updateDetailDropdown();
+            });
+
+            // プロンプト生成ボタンのクリック
+            document.getElementById('btn-generate').addEventListener('click', generatePrompt);
+
+            // コピーボタンのクリック
+            document.getElementById('btn-copy').addEventListener('click', copyToClipboard);
+        }
+
+        // 現在選択されている教科の文字列を取得
+        function getSelectedSubject() {
+            const checkedRadio = document.querySelector('input[name="subject"]:checked');
+            return checkedRadio ? checkedRadio.value : '国語';
+        }
+
+        // 表記揺れ対応のデータ取得用関数
+        function getSubjectData(subjectKey) {
+            if (!learningMapData) return null;
+            if (learningMapData[subjectKey]) return learningMapData[subjectKey];
+            
+            const keys = Object.keys(learningMapData);
+            const matchedKey = keys.find(k => k.includes(subjectKey) || subjectKey.includes(k));
+            return matchedKey ? learningMapData[matchedKey] : null;
+        }
+
+        // 2. 「段階」プルダウンの更新
+        function updateStageDropdown() {
+            const subject = getSelectedSubject();
+            const stageSelect = document.getElementById('select-stage');
+            const stepSelect = document.getElementById('select-step');
+            const detailSelect = document.getElementById('select-detail');
+
+            stageSelect.innerHTML = '<option value="">-- 段階を選択してください --</option>';
+            stepSelect.innerHTML = '<option value="">-- 段階を先に選んでください --</option>';
+            stepSelect.disabled = true;
+            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
+            detailSelect.disabled = true;
+
+            const targetData = getSubjectData(subject);
+            if (!targetData) return;
+
+            Object.keys(targetData).forEach(stage => {
+                const option = document.createElement('option');
+                option.value = stage;
+                option.textContent = stage;
+                stageSelect.appendChild(option);
+            });
+        }
+
+        // 3. 「ステップ／領域」プルダウンの更新
+        function updateStepDropdown() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const stepSelect = document.getElementById('select-step');
+            const detailSelect = document.getElementById('select-detail');
+
+            stepSelect.innerHTML = '<option value="">-- 領域／ステップを選択してください --</option>';
+            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
+            detailSelect.disabled = true;
+
+            if (!stage) {
+                stepSelect.disabled = true;
+                return;
+            }
+
+            const targetData = getSubjectData(subject);
+            if (!targetData || !targetData[stage]) return;
+
+            const steps = targetData[stage];
+            Object.keys(steps).forEach(step => {
+                const option = document.createElement('option');
+                option.value = step;
+                option.textContent = step;
+                stepSelect.appendChild(option);
+            });
+            stepSelect.disabled = false;
+        }
+
+        // 4. 「具体的な指導内容」プルダウンの更新
+        function updateDetailDropdown() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const step = document.getElementById('select-step').value;
+            const detailSelect = document.getElementById('select-detail');
+
+            detailSelect.innerHTML = '<option value="">-- 具体的な指導内容を選択してください --</option>';
+
+            if (!step) {
+                detailSelect.disabled = true;
+                return;
+            }
+
+            const targetData = getSubjectData(subject);
+            if (!targetData || !targetData[stage] || !targetData[stage][step]) return;
+
+            const details = targetData[stage][step];
+            if (Array.isArray(details)) {
+                details.forEach(detail => {
+                    const option = document.createElement('option');
+                    option.value = detail;
+                    option.textContent = detail;
+                    detailSelect.appendChild(option);
+                });
+            }
+            detailSelect.disabled = false;
+        }
+
+        // プロンプト生成ロジック
+        function generatePrompt() {
+            const subject = getSelectedSubject();
+            const stage = document.getElementById('select-stage').value;
+            const step = document.getElementById('select-step').value;
+            const detail = document.getElementById('select-detail').value;
+            
+            const goal = document.getElementById('input-goal').value.trim() || '（個別に指定なし。指導内容に基づき最適な目標を設定してください）';
+            const interest = document.getElementById('input-interest').value.trim() || '（児童の特別な興味関心の指定なし。シンプルで分かりやすいユニバーサルデザインを採用してください）';
+
+            const validationError = document.getElementById('validation-error');
+
+            if (!stage || !step || !detail) {
+                validationError.classList.remove('hidden');
+                return;
+            }
+            validationError.classList.add('hidden');
+
+            const promptTemplate = `あなたは特別支援教育（知的障害）の教材開発における、最高峰のフロントエンドエンジニアでありWebビルダーです。
+以下の【教育的コンテキスト】および【児童の特性】に基づき、iPadのSafariブラウザで完璧に動作する、単一ファイル（Single HTML）構成のインタラクティブな学習教材Webアプリをビルドしてください。
+
+【教育的コンテキスト（学習指導要領に基づく設定）】
+- 対象教科: ${subject}
+- 指導段階: ${stage}
+- 領域/ステップ: ${step}
+- 具体的指導内容: ${detail}
+- 本授業の指導目標: ${goal}
+
+【児童の興味関心・アプリへの要望】
+${interest}
+
+【アプリ実装への絶対要件（特別支援・iPad Safari & Googleサイト埋め込み最適化仕様）】
+1. テキスト表記・フォントのユニバーサルデザイン：
+   - 画面上に登場する全ての指示文、ボタン文字、正誤フィードバックは「ひらがな」および「カタカナ」のみ（漢字は完全禁止）。
+   - ただし、画面最下部に設置する「指導者向け：本アプリのねらい」表示エリアに限り、教員のみが視認する領域となるため、読みやすい適切な「漢字」表記を採用すること。
+   - フォントには視認性が極めて高いユニバーサルデザインフォント（太字のSans-serifなど）を設定し、背景と文字のコントラストを十分に確保すること。
+
+2. Googleサイトのメニューを隠蔽する「ファーストタッチ没入（Fullscreen API）」の自動発火【超重要】：
+   - ブラウザのセキュリティ仕様上、ページ読み込みと同時の自動全画面化はエラーとなるため、アプリ起動時はまず画面全体を覆う「はじめる」画面（オーバーレイ）を表示させること。
+   - 児童が「はじめる」画面のどこかを最初にタップ（タッチ）した瞬間に、JavaScriptの \`requestFullscreen()\` （および Safari用の \`webkitRequestFullscreen()\`）を発火させてGoogleサイトの枠を越えた完全な全画面表示へ強制移行させると同時に、オーバーレイを非表示にして本編を開始させること。
+   - 児童の誤操作を防ぐため、全画面を解除するためのボタンや案内表示は【一切実装しない（禁止）】こと。
+
+3. 厳格な全画面固定とスクロールバグの完全排除：
+   - メタタグに \`user-scalable=no, viewport-fit=cover\` を設定し、ダブルタップ拡大や画面のズレを徹底的に禁止すること。
+   - 以下のCSSを最外殻（html, body）に適用すること：
+     \`\`\`css
+     html, body {
+         width: 100%;
+         height: 100%;
+         margin: 0;
+         padding: 0;
+         overflow: hidden; /* スクロールバーの出現を完全禁止 */
+         overscroll-behavior: none; /* バウンススクロール防止 */
+         -webkit-overflow-scrolling: touch;
+     }
+     \`\`\`
+   - CSSで \`user-select: none;\` および \`-webkit-touch-callout: none;\` を指定し、画面の長押しによるコピーメニューやポップアップの出現を完全無効化すること。
+
+4. アナログ教具に近い直感的操作感（マルチタッチ対応）：
+   - 単に画面上の静止ボタンをタップするだけの無機質なデジタルドリルではなく、自分の手で教材を動かせる**ドラッグ＆ドロップ操作**（例: 児童の好きな電車の車両を車庫に引きずる、果物をカゴの中に入れるなど）をメインギミックとして採用すること。
+   - iPad上のSafariでドラッグ操作が外側のページスクロールに干渉されず、遅延なく直感的に実現させるため、マウスクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使し、かつ \`event.preventDefault()\` を適切に制御した高レスポンスなドラッグ＆ドロップロジックをJavaScriptに内包すること。
+
+5. 心理的安全性（否定的なフィードバックの完全禁止）：
+   - 児童がつまずいた際、パニック、自傷行為、あるいは学習への強い挫折感を誘発する原因となるため、**「×（バツ印）」の表示や「ブブー」という低音の不快な警告音は一切採用しない（完全不採用・禁止）**こと。
+   - 正解時は、画面全体に派手なアニメーション（カラフルな紙吹雪が舞う、大きな花丸が表示されるなど）と、Web Audio APIを駆使した心地よいクリア音で児童の達成感を最大化すること。
+
+6. 足場かけ（スキャッフホールディング機能の自動化）：
+   - 不正解のオブジェクト（違うボックスにドラッグした場合など）は、否定的な表現は一切せず、シュッと静かに元の初期位置へリセットすること。
+   - 同じ問題を2回連続でミスした、あるいは一定時間操作が止まった場合は、児童が自力で正解に気づけるように、**「正解となる選択肢（オブジェクト）や、ドロップすべき正しいエリアを優しく点滅（フェードイン・アウト）・ハイライトする」**といった視覚的な支援機能（ヒント機能）が自動で作動するロジックを必ず組み込むこと。
+
+7. 教育的根拠の明記（ねらいの常時表示）：
+   - 授業における個別の指導計画、および学習評価（PDCA）との連動を確実なものにするため、画面の最下部に目立たない小さな文字で **「指導者向け：本アプリのねらい」** と分かりやすく漢字で記載し、上記で設定した指導目標・内容を常時表示させるエリアを設けること。
+
+上記のすべての条件と、児童の興味関心を惹きつけるエッセンスを高い次元で融合させた最高の教材アプリのHTMLフルコードを出力してください。
+【重要】Googleサイトへの直接埋め込みで使用するため、コードの前後を「\`\`\`html」や「\`\`\`」といったマークダウンのコードブロックで絶対に囲まないでください。1文字目から \`<!DOCTYPE html>\` で開始し、最後は \`</html>\` で終わる純粋な生コード（Raw Code）のみを直接出力してください。`;
+
+            // テキストエリアに出力
+            document.getElementById('prompt-output').value = promptTemplate;
+        }
+
+        // クリップボードコピーとトースト通知
+        function copyToClipboard() {
+            const outputText = document.getElementById('prompt-output').value;
+            if (!outputText) return;
+
+            navigator.clipboard.writeText(outputText).then(() => {
+                const badge = document.getElementById('toast-badge');
+                
+                badge.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+                badge.classList.add('opacity-100', 'translate-y-0');
+
+                setTimeout(() => {
+                    badge.classList.remove('opacity-100', 'translate-y-0');
+                    badge.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+                }, 2000);
+            }).catch(err => {
+                console.error('クリップボードへのコピーに失敗しました:', err);
+            });
+        }
+    </script>
+</body>
+</html>
