@@ -20,7 +20,7 @@
                 <span class="text-indigo-600">💡</span> 特別支援教育向け 教材アプリプロンプトジェネレーター
             </h1>
             <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-200">
-                UI/UX Optimized
+                Teacher-Friendly Edition
             </span>
         </div>
     </header>
@@ -32,7 +32,7 @@
                 <div class="flex-shrink-0 text-red-500 font-bold text-xl">⚠️</div>
                 <div class="ml-3">
                     <p class="text-sm font-bold text-red-800">【警告】学習指導要領マスターデータ(JSON)の読み込みに失敗しました。</p>
-                    <p class="text-xs text-red-700 mt-1">`data/learning_map.json` ファイルが正しいパスに配置されているか、またはVS Codeの Live Server などのローカルサーバー環境から起動しているかを確認してください。</p>
+                    <p class="text-xs text-red-700 mt-1">`data/learning_map.json` ファイルが正しいパスに配置されているか、またはローカルサーバー環境（Live Server等）から起動しているかを確認してください。</p>
                 </div>
             </div>
         </div>
@@ -190,13 +190,11 @@
             return checkedRadio ? checkedRadio.value : '国語';
         }
 
-        // JSONデータのキーを探索するための安全なヘルパー関数
-        // (「算数・数学」「算数」「算数・数学科」などの表記揺れに柔軟に対応します)
+        // 表記揺れ対応のデータ取得用関数
         function getSubjectData(subjectKey) {
             if (!learningMapData) return null;
             if (learningMapData[subjectKey]) return learningMapData[subjectKey];
             
-            // 完全一致しない場合、前方一致などのキーを探す保護ロジック
             const keys = Object.keys(learningMapData);
             const matchedKey = keys.find(k => k.includes(subjectKey) || subjectKey.includes(k));
             return matchedKey ? learningMapData[matchedKey] : null;
@@ -209,7 +207,6 @@
             const stepSelect = document.getElementById('select-step');
             const detailSelect = document.getElementById('select-detail');
 
-            // 後続プルダウンのリセット
             stageSelect.innerHTML = '<option value="">-- 段階を選択してください --</option>';
             stepSelect.innerHTML = '<option value="">-- 段階を先に選んでください --</option>';
             stepSelect.disabled = true;
@@ -219,7 +216,6 @@
             const targetData = getSubjectData(subject);
             if (!targetData) return;
 
-            // JSONオブジェクトのキー（小学部1段階 など）からオプションを動的生成
             Object.keys(targetData).forEach(stage => {
                 const option = document.createElement('option');
                 option.value = stage;
@@ -298,7 +294,6 @@
 
             const validationError = document.getElementById('validation-error');
 
-            // 必須チェック
             if (!stage || !step || !detail) {
                 validationError.classList.remove('hidden');
                 return;
@@ -318,32 +313,45 @@
 【児童の興味関心・アプリへの要望】
 ${interest}
 
-【アプリ実装への絶対要件（特別支援・iPad Safari最適化仕様）】
+【アプリ実装への絶対要件（特別支援・iPad Safari & Googleサイト埋め込み最適化仕様）】
 1. テキスト表記・フォントのユニバーサルデザイン：
    - 画面上に登場する全ての指示文、ボタン文字、正誤フィードバックは「ひらがな」および「カタカナ」のみ（漢字は完全禁止）。
+   - ただし、画面最下部に設置する「指導者向け：本アプリのねらい」表示エリアに限り、教員のみが視認する領域となるため、読みやすい適切な「漢字」表記を採用すること。
    - フォントには視認性が極めて高いユニバーサルデザインフォント（太字のSans-serifなど）を設定し、背景と文字のコントラストを十分に確保すること。
 
-2. 厳格な画面固定とスクロールエラー対策（バグの完全排除）：
-   - 児童の予期せぬ誤操作を防ぐため、メタタグに \`user-scalable=no\` を設定し、ダブルタップ拡大を徹底的に禁止すること。
+2. 厳格な全画面固定とGoogleサイト埋め込み対策（バグの完全排除）：
+   - メタタグに \`user-scalable=no, viewport-fit=cover\` を設定し、ダブルタップ拡大や画面のズレを徹底的に禁止すること。
+   - Googleサイトの「フルページ埋め込み（iframe内部）」で表示された際、ブラウザの不要なスクロールバーが出現するのを防ぐため、必ず以下のCSSを最外殻（html, body）に適用すること：
+     \`\`\`css
+     html, body {
+         width: 100%;
+         height: 100%;
+         margin: 0;
+         padding: 0;
+         overflow: hidden; /* スクロールバーの出現を完全禁止 */
+         overscroll-behavior: none; /* バウンススクロール防止 */
+         -webkit-overflow-scrolling: touch;
+     }
+     \`\`\`
    - CSSで \`user-select: none;\` および \`-webkit-touch-callout: none;\` を指定し、画面の長押しによるコピーメニューやポップアップの出現を完全無効化すること。
-   - ボディ全体および最外殻コンテナに **\`overscroll-behavior: none;\`** を適用すること。画面端を引っ張った際に背景がゴムのように白く伸びてずれてしまう現象（バウンススクロール）を確実に防止すること。
 
-3. アナログ教具に近い直感的操作感（マルチタッチ対応）：
+3. アナログ教具に近い直感的操作感（Googleサイト iframe対応マルチタッチ）：
    - 単に画面上の静止ボタンをタップするだけの無機質なデジタルドリルではなく、自分の手で教材を動かせる**ドラッグ＆ドロップ操作**（例: 児童の好きな電車の車両を車庫に引きずる、果物をカゴの中に入れるなど）をメインギミックとして採用すること。
-   - iPad上のSafariでドラッグ操作を遅延なく直感的に実現させるため、マウスクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使した高レスポンスなドラッグ＆ドロップ制御をJavaScriptに内包すること。
+   - Googleサイトのiframe内に埋め込まれた状態でも、iPad上のSafariでドラッグ操作が外側のページスクロールに干渉されず、遅延なく直感的に実現させるため、マウスクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使し、かつ \`event.preventDefault()\` を適切に制御した高レスポンスなドラッグ＆ドロップロジックをJavaScriptに内包すること。
 
 4. 心理的安全性（否定的なフィードバックの完全禁止）：
    - 児童がつまずいた際、パニック、自傷行為、あるいは学習への強い挫折感を誘発する原因となるため、**「×（バツ印）」の表示や「ブブー」という低音の不快な警告音は一切採用しない（完全不採用・禁止）**こと。
-   - 正解時は、画面全体に派手なアニメーション（カラフルな紙吹雪が舞う、大きな花丸が表示されるなど）と、Web Audio APIを駆使した心地よいクリア音で児童の達成感を最大化すること。
+   - 正解時は、画面全体に派手なアニメーション（カラフルな紙混雪が舞う、大きな花丸が表示されるなど）と、Web Audio APIを駆使した心地よいクリア音で児童の達成感を最大化すること。
 
 5. 足場かけ（スキャッフホールディング機能の自動化）：
    - 不正解のオブジェクト（違うボックスにドラッグした場合など）は、否定的な表現は一切せず、シュッと静かに元の初期位置へリセットすること。
    - 同じ問題を2回連続でミスした、あるいは一定時間操作が止まった場合は、児童が自力で正解に気づけるように、**「正解となる選択肢（オブジェクト）や、ドロップすべき正しいエリアを優しく点滅（フェードイン・アウト）・ハイライトする」**といった視覚的な支援機能（ヒント機能）が自動で作動するロジックを必ず組み込むこと。
 
 6. 教育的根拠の明記（ねらいの常時表示）：
-   - 授業における個別の指導計画、および学習評価（PDCA）との連動を確実なものにするため、画面の最下部に目立たない小さな文字で「しどうしゃむけ：ほんアプリのねらい」と記載し、上記で設定した指導目標・内容を常時表示させるエリアを設けること。
+   - 授業における個別の指導計画、および学習評価（PDCA）との連動を確実なものにするため、画面の最下部に目立たない小さな文字で **「指導者向け：本アプリのねらい」** と分かりやすく漢字で記載し、上記で設定した指導目標・内容を常時表示させるエリアを設けること。
 
-上記のすべての条件と、児童の興味関心を惹きつけるエッセンスを高い次元で融合させた最高の教材アプリのHTMLフルコードを、1つのコードブロックで出力してください。`;
+上記のすべての条件と、児童の興味関心を惹きつけるエッセンスを高い次元で融合させた最高の教材アプリのHTMLフルコードを出力してください。
+【重要】Googleサイトへの直接埋め込みで使用するため、コードの前後を「\`\`\`html」や「\`\`\`」といったマークダウンのコードブロックで絶対に囲まないでください。1文字目から \`<!DOCTYPE html>\` で開始し、最後は \`</html>\` で終わる純粋な生コード（Raw Code）のみを直接出力してください。`;
 
             // テキストエリアに出力
             document.getElementById('prompt-output').value = promptTemplate;
@@ -357,11 +365,9 @@ ${interest}
             navigator.clipboard.writeText(outputText).then(() => {
                 const badge = document.getElementById('toast-badge');
                 
-                // バッジのフェードイン表示
                 badge.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
                 badge.classList.add('opacity-100', 'translate-y-0');
 
-                // 2秒後にフェードアウト
                 setTimeout(() => {
                     badge.classList.remove('opacity-100', 'translate-y-0');
                     badge.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
