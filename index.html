@@ -10,9 +10,23 @@
         body {
             font-family: 'Noto Sans JP', sans-serif;
         }
+        /* ステップガイド用のカスタム線 */
+        .step-line::after {
+            content: '';
+            position: absolute;
+            top: 40px;
+            bottom: -16px;
+            left: 20px;
+            width: 2px;
+            background-color: #e5e7eb;
+            z-index: 0;
+        }
+        .step-item:last-child .step-line::after {
+            display: none;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen text-gray-800 antialiased">
+<body class="bg-gray-50 min-h-screen text-gray-800 antialiased pb-12">
 
     <header class="bg-white border-b border-gray-200 sticky top-0 z-50 py-4 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
@@ -20,7 +34,7 @@
                 <span class="text-indigo-600">💡</span> 特別支援教育向け 教材アプリプロンプトジェネレーター
             </h1>
             <span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-indigo-200">
-                Teacher-Friendly Edition
+                Immersive Auto-Fullscreen Edition
             </span>
         </div>
     </header>
@@ -128,254 +142,33 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-
-    <script>
-        // グローバルデータストア
-        let learningMapData = null;
-
-        // ドキュメント読み込み完了時の初期化
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchMasterData();
-            setupEventListeners();
-        });
-
-        // データの非同期取得
-        async function fetchMasterData() {
-            try {
-                const response = await fetch('data/learning_map.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                learningMapData = await response.json();
-                
-                // 初期ロード時プルダウンを生成
-                updateStageDropdown();
-            } catch (error) {
-                console.error('マスターデータのフェッチに失敗しました:', error);
-                document.getElementById('error-alert').classList.remove('hidden');
-            }
-        }
-
-        // イベントリスナーの一括設定
-        function setupEventListeners() {
-            // 教科ラジオボタンの変更検知
-            document.querySelectorAll('input[name="subject"]').forEach(radio => {
-                radio.addEventListener('change', () => {
-                    updateStageDropdown();
-                });
-            });
-
-            // 段階選択時の変更検知
-            document.getElementById('select-stage').addEventListener('change', () => {
-                updateStepDropdown();
-            });
-
-            // ステップ選択時の変更検知
-            document.getElementById('select-step').addEventListener('change', () => {
-                updateDetailDropdown();
-            });
-
-            // プロンプト生成ボタンのクリック
-            document.getElementById('btn-generate').addEventListener('click', generatePrompt);
-
-            // コピーボタンのクリック
-            document.getElementById('btn-copy').addEventListener('click', copyToClipboard);
-        }
-
-        // 現在選択されている教科の文字列を取得
-        function getSelectedSubject() {
-            const checkedRadio = document.querySelector('input[name="subject"]:checked');
-            return checkedRadio ? checkedRadio.value : '国語';
-        }
-
-        // 表記揺れ対応のデータ取得用関数
-        function getSubjectData(subjectKey) {
-            if (!learningMapData) return null;
-            if (learningMapData[subjectKey]) return learningMapData[subjectKey];
+        </div> <div class="mt-8 bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8">
+            <h2 class="text-xl font-bold text-gray-900 border-b pb-3 mb-8 flex items-center gap-2">
+                <span class="w-2 h-6 bg-amber-500 rounded-full"></span> 3. アプリの作成・修正・公開までのやさしい手順
+            </h2>
             
-            const keys = Object.keys(learningMapData);
-            const matchedKey = keys.find(k => k.includes(subjectKey) || subjectKey.includes(k));
-            return matchedKey ? learningMapData[matchedKey] : null;
-        }
-
-        // 2. 「段階」プルダウンの更新
-        function updateStageDropdown() {
-            const subject = getSelectedSubject();
-            const stageSelect = document.getElementById('select-stage');
-            const stepSelect = document.getElementById('select-step');
-            const detailSelect = document.getElementById('select-detail');
-
-            stageSelect.innerHTML = '<option value="">-- 段階を選択してください --</option>';
-            stepSelect.innerHTML = '<option value="">-- 段階を先に選んでください --</option>';
-            stepSelect.disabled = true;
-            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
-            detailSelect.disabled = true;
-
-            const targetData = getSubjectData(subject);
-            if (!targetData) return;
-
-            Object.keys(targetData).forEach(stage => {
-                const option = document.createElement('option');
-                option.value = stage;
-                option.textContent = stage;
-                stageSelect.appendChild(option);
-            });
-        }
-
-        // 3. 「ステップ／領域」プルダウンの更新
-        function updateStepDropdown() {
-            const subject = getSelectedSubject();
-            const stage = document.getElementById('select-stage').value;
-            const stepSelect = document.getElementById('select-step');
-            const detailSelect = document.getElementById('select-detail');
-
-            stepSelect.innerHTML = '<option value="">-- 領域／ステップを選択してください --</option>';
-            detailSelect.innerHTML = '<option value="">-- 領域／ステップを先に選んでください --</option>';
-            detailSelect.disabled = true;
-
-            if (!stage) {
-                stepSelect.disabled = true;
-                return;
-            }
-
-            const targetData = getSubjectData(subject);
-            if (!targetData || !targetData[stage]) return;
-
-            const steps = targetData[stage];
-            Object.keys(steps).forEach(step => {
-                const option = document.createElement('option');
-                option.value = step;
-                option.textContent = step;
-                stepSelect.appendChild(option);
-            });
-            stepSelect.disabled = false;
-        }
-
-        // 4. 「具体的な指導内容」プルダウンの更新
-        function updateDetailDropdown() {
-            const subject = getSelectedSubject();
-            const stage = document.getElementById('select-stage').value;
-            const step = document.getElementById('select-step').value;
-            const detailSelect = document.getElementById('select-detail');
-
-            detailSelect.innerHTML = '<option value="">-- 具体的な指導内容を選択してください --</option>';
-
-            if (!step) {
-                detailSelect.disabled = true;
-                return;
-            }
-
-            const targetData = getSubjectData(subject);
-            if (!targetData || !targetData[stage] || !targetData[stage][step]) return;
-
-            const details = targetData[stage][step];
-            if (Array.isArray(details)) {
-                details.forEach(detail => {
-                    const option = document.createElement('option');
-                    option.value = detail;
-                    option.textContent = detail;
-                    detailSelect.appendChild(option);
-                });
-            }
-            detailSelect.disabled = false;
-        }
-
-        // プロンプト生成ロジック
-        function generatePrompt() {
-            const subject = getSelectedSubject();
-            const stage = document.getElementById('select-stage').value;
-            const step = document.getElementById('select-step').value;
-            const detail = document.getElementById('select-detail').value;
-            
-            const goal = document.getElementById('input-goal').value.trim() || '（個別に指定なし。指導内容に基づき最適な目標を設定してください）';
-            const interest = document.getElementById('input-interest').value.trim() || '（児童の特別な興味関心の指定なし。シンプルで分かりやすいユニバーサルデザインを採用してください）';
-
-            const validationError = document.getElementById('validation-error');
-
-            if (!stage || !step || !detail) {
-                validationError.classList.remove('hidden');
-                return;
-            }
-            validationError.classList.add('hidden');
-
-            const promptTemplate = `あなたは特別支援教育（知的障害）の教材開発における、最高峰のフロントエンドエンジニアでありWebビルダーです。
-以下の【教育的コンテキスト】および【児童の特性】に基づき、iPadのSafariブラウザで完璧に動作する、単一ファイル（Single HTML）構成のインタラクティブな学習教材Webアプリをビルドしてください。
-
-【教育的コンテキスト（学習指導要領に基づく設定）】
-- 対象教科: ${subject}
-- 指導段階: ${stage}
-- 領域/ステップ: ${step}
-- 具体的指導内容: ${detail}
-- 本授業の指導目標: ${goal}
-
-【児童の興味関心・アプリへの要望】
-${interest}
-
-【アプリ実装への絶対要件（特別支援・iPad Safari & Googleサイト埋め込み最適化仕様）】
-1. テキスト表記・フォントのユニバーサルデザイン：
-   - 画面上に登場する全ての指示文、ボタン文字、正誤フィードバックは「ひらがな」および「カタカナ」のみ（漢字は完全禁止）。
-   - ただし、画面最下部に設置する「指導者向け：本アプリのねらい」表示エリアに限り、教員のみが視認する領域となるため、読みやすい適切な「漢字」表記を採用すること。
-   - フォントには視認性が極めて高いユニバーサルデザインフォント（太字のSans-serifなど）を設定し、背景と文字のコントラストを十分に確保すること。
-
-2. 厳格な全画面固定とGoogleサイト埋め込み対策（バグの完全排除）：
-   - メタタグに \`user-scalable=no, viewport-fit=cover\` を設定し、ダブルタップ拡大や画面のズレを徹底的に禁止すること。
-   - Googleサイトの「フルページ埋め込み（iframe内部）」で表示された際、ブラウザの不要なスクロールバーが出現するのを防ぐため、必ず以下のCSSを最外殻（html, body）に適用すること：
-     \`\`\`css
-     html, body {
-         width: 100%;
-         height: 100%;
-         margin: 0;
-         padding: 0;
-         overflow: hidden; /* スクロールバーの出現を完全禁止 */
-         overscroll-behavior: none; /* バウンススクロール防止 */
-         -webkit-overflow-scrolling: touch;
-     }
-     \`\`\`
-   - CSSで \`user-select: none;\` および \`-webkit-touch-callout: none;\` を指定し、画面の長押しによるコピーメニューやポップアップの出現を完全無効化すること。
-
-3. アナログ教具に近い直感的操作感（Googleサイト iframe対応マルチタッチ）：
-   - 単に画面上の静止ボタンをタップするだけの無機質なデジタルドリルではなく、自分の手で教材を動かせる**ドラッグ＆ドロップ操作**（例: 児童の好きな電車の車両を車庫に引きずる、果物をカゴの中に入れるなど）をメインギミックとして採用すること。
-   - Googleサイトのiframe内に埋め込まれた状態でも、iPad上のSafariでドラッグ操作が外側のページスクロールに干渉されず、遅延なく直感的に実現させるため、マウスクリックイベントに頼るのではなく、必ず **「Touch API（touchstart, touchmove, touchend などのタッチイベント）」** を駆使し、かつ \`event.preventDefault()\` を適切に制御した高レスポンスなドラッグ＆ドロップロジックをJavaScriptに内包すること。
-
-4. 心理的安全性（否定的なフィードバックの完全禁止）：
-   - 児童がつまずいた際、パニック、自傷行為、あるいは学習への強い挫折感を誘発する原因となるため、**「×（バツ印）」の表示や「ブブー」という低音の不快な警告音は一切採用しない（完全不採用・禁止）**こと。
-   - 正解時は、画面全体に派手なアニメーション（カラフルな紙混雪が舞う、大きな花丸が表示されるなど）と、Web Audio APIを駆使した心地よいクリア音で児童の達成感を最大化すること。
-
-5. 足場かけ（スキャッフホールディング機能の自動化）：
-   - 不正解のオブジェクト（違うボックスにドラッグした場合など）は、否定的な表現は一切せず、シュッと静かに元の初期位置へリセットすること。
-   - 同じ問題を2回連続でミスした、あるいは一定時間操作が止まった場合は、児童が自力で正解に気づけるように、**「正解となる選択肢（オブジェクト）や、ドロップすべき正しいエリアを優しく点滅（フェードイン・アウト）・ハイライトする」**といった視覚的な支援機能（ヒント機能）が自動で作動するロジックを必ず組み込むこと。
-
-6. 教育的根拠の明記（ねらいの常時表示）：
-   - 授業における個別の指導計画、および学習評価（PDCA）との連動を確実なものにするため、画面の最下部に目立たない小さな文字で **「指導者向け：本アプリのねらい」** と分かりやすく漢字で記載し、上記で設定した指導目標・内容を常時表示させるエリアを設けること。
-
-上記のすべての条件と、児童の興味関心を惹きつけるエッセンスを高い次元で融合させた最高の教材アプリのHTMLフルコードを出力してください。
-【重要】Googleサイトへの直接埋め込みで使用するため、コードの前後を「\`\`\`html」や「\`\`\`」といったマークダウンのコードブロックで絶対に囲まないでください。1文字目から \`<!DOCTYPE html>\` で開始し、最後は \`</html>\` で終わる純粋な生コード（Raw Code）のみを直接出力してください。`;
-
-            // テキストエリアに出力
-            document.getElementById('prompt-output').value = promptTemplate;
-        }
-
-        // クリップボードコピーとトースト通知
-        function copyToClipboard() {
-            const outputText = document.getElementById('prompt-output').value;
-            if (!outputText) return;
-
-            navigator.clipboard.writeText(outputText).then(() => {
-                const badge = document.getElementById('toast-badge');
+            <div class="space-y-8 relative">
                 
-                badge.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
-                badge.classList.add('opacity-100', 'translate-y-0');
+                <div class="step-item relative flex gap-4 sm:gap-6">
+                    <div class="step-line flex-shrink-0 relative z-10">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm">1</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg flex items-center gap-2">
+                            「キャンバス」をオンにしてからプロンプトを送信する
+                        </h3>
+                        <p class="text-gray-600 mt-2 leading-relaxed">
+                            上の画面で「コピー」ボタンを押したら、右上の「Geminiを開く」からAIの画面へ移動します。<br>
+                            <span class="text-red-600 font-bold">ここが最も重要です！</span> プロンプトの文章を貼り付ける前に、まずGeminiの入力欄の近く（または設定メニュー内）にある<strong>「キャンバス（Canvas）」機能をオン（有効）</strong>に切り替えてください。<br>
+                            キャンバスがオンになったことを確認してから、コピーした文章を貼り付けて送信（エンター）すると、画面の右側に実際の動きが見えるプレビュー画面付きでアプリ作成が始まります。
+                        </p>
+                    </div>
+                </div>
 
-                setTimeout(() => {
-                    badge.classList.remove('opacity-100', 'translate-y-0');
-                    badge.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
-                }, 2000);
-            }).catch(err => {
-                console.error('クリップボードへのコピーに失敗しました:', err);
-            });
-        }
-    </script>
-</body>
-</html>
+                <div class="step-item relative flex gap-4 sm:gap-6">
+                    <div class="step-line flex-shrink-0 relative z-10">
+                        <div class="w-10 h-10 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center font-bold text-lg border-2 border-white shadow-sm">2</div>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-lg">
+                            チャットの
